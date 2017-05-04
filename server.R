@@ -16,8 +16,6 @@ server <- function(input, output) {
     if (is.null(infile)) {
       return(NULL)
     }
-    # fread(infile$datapath, header = F, sep = ',', verbose=F, colClasses =
-    # 'character')
     infile$datapath
   })
 
@@ -28,8 +26,6 @@ server <- function(input, output) {
     if (is.null(infile)) {
       return(NULL)
     }
-    # fread(infile$datapath, header = F, sep = ',', verbose=F, colClasses =
-    # 'character')
     infile$datapath
   })
 
@@ -65,56 +61,45 @@ server <- function(input, output) {
   # random forest
   randomForestFunc <- function(testingFilePath, trainingFilePath) {
 
-    #############################################################################
     TrainingFile = trainingFilePath
     TestingFile = testingFilePath
 
-    # ------------------------------------------------------- Training Data
     TrainData <- fread(TrainingFile, header = F, sep = ",", verbose = F,
                        colClasses = "character")
     TrainData = as.matrix(TrainData)
     NumberColumn = ncol(TrainData)
-    # ------------------------------------------------------- Select only
-    # Data from Training dataset
+
     TrainingData_NoClassName = TrainData[, 1:NumberColumn - 1]
     typeof(TrainingData_NoClassName)
-    # ------------------------------------------------------- Select only
-    # class/category from Training Data
-    TrainingData_OnlyClassName = TrainData[, NumberColumn]
-    # -------------------------------------------------------
 
-    # Testing Data
+    TrainingData_OnlyClassName = TrainData[, NumberColumn]
+
     TestingData <- fread(TestingFile, header = F, sep = ",", verbose = F,
                          colClasses = "numeric")
     TestingData = as.matrix(TestingData)
     NumberColumn = ncol(TestingData)
-    # ------------------------------------------------------- Select only
-    # Data from testing dataset
+
     TestingData_NoClassName = TestingData[, 1:NumberColumn - 1]
-    # ------------------------------------------------------- Select only
-    # class/category from Testing Data
+
     TestingData_OnlyClassName = TestingData[, NumberColumn]
 
 
-    ############################################################################
     nrFolds <- 5
-    # ------------------------------------------------------- generate
-    # array containing fold-number for each sample (row)
+
     folds <- rep_len(1:nrFolds, nrow(TrainData))
     output1 <- NULL
     output$result1 <- renderPrint({
-      # actual cross validation
       for (k in 1:nrFolds) {
-        # actual split of the data
+
         fold <- which(folds == k)
         data.train <- TrainData[-fold, ]
         ncolumn = ncol(data.train)
         data.test <- TrainData[fold, ]
 
-        # train and test your model with data.train and data.test
+
         model = randomForest(data.train[, 1:ncolumn - 1], factor(data.train[,
-                                                                            ncolumn]), ntree = 10)  #create model
-        rf.pred = predict(model, data.test)  #predicition
+                                                                            ncolumn]), ntree = 10)
+        rf.pred = predict(model, data.test)
 
         output1 <- rbind(output1, paste(funcPerformanceEvaluation(rf.pred,
                                                                   data.test[, ncolumn]), sep = " "))
@@ -122,10 +107,10 @@ server <- function(input, output) {
 
       output1
     })
-    #############################################################################
+
     model = randomForest(TrainingData_NoClassName, factor(TrainingData_OnlyClassName),
-                         ntree = 30)  #create model
-    model.result = predict(model, TestingData)  #predicition
+                         ntree = 30)
+    model.result = predict(model, TestingData)
 
     output$result2 <- renderUI({
       print(paste(funcPerformanceEvaluation(model.result, TestingData_OnlyClassName),
@@ -157,11 +142,11 @@ server <- function(input, output) {
   })
 
   Read.LibSVM.File <- function(LibSVMFileName) {
-    x <- read.matrix.csr(LibSVMFileName)  # From library('e1071') package
-    # Get Real Data
+    x <- read.matrix.csr(LibSVMFileName)
+
     Data = as.data.frame(as.matrix(x$x))
     LibSVM.Label.Class = x$y
-    # Add Class to Data
+
     Data$class = LibSVM.Label.Class
 
 
@@ -177,19 +162,19 @@ server <- function(input, output) {
     data.frame(fread(infile$datapath, header = T, sep = ',', verbose=F, colClasses = "numeric"))
   })
   borutaFunc <- function(x) {
-    # Load the dataset
+
     DATASET <- x
 
-    # auto column name
+
     col.names <- paste("col", 1:length(DATASET), sep = "")
     names(DATASET) <- col.names
-    # print(str(DATASET))# Inspect the structure
 
-    # Seperate data from class
+
+
     DATASET_Training <- DATASET[, 1:(length(DATASET) - 1)]
     DATASET_TrainClasses <- DATASET[, length(DATASET)]
 
-    # summary(DATASET_Training)
+
 
     set.seed(5)
     boruta.train <- Boruta(DATASET_Training, DATASET_TrainClasses,
@@ -258,27 +243,27 @@ server <- function(input, output) {
   caretFunc <- function(x) {
     DATASET <- x
 
-    # auto column name
+
     col.names <- paste("col", 1:length(DATASET), sep = "")
     names(DATASET) <- col.names
-    print(str(DATASET))  # Inspect the structure
+    print(str(DATASET))
 
-    # Seperate data from class
+
     DATASET_Training <- DATASET[, 1:length(DATASET) - 1]
     DATASET_TrainClasses <- DATASET[, length(DATASET)]
 
-    # define the control using a random forest selection function
+
     control <- rfeControl(functions = rfFuncs, method = "cv", number = 5)
-    # run the RFE algorithm
+
     results <- rfe(DATASET_Training, DATASET_TrainClasses, sizes = c(1:length(DATASET) - 1), rfeControl = control)
-    # summarize the results
+
     output$resultCaret <- renderPrint({
       print(results)
     })
 
-    # list the chosen features
+
     predictors(results)
-    # plot the results
+
     output$drawPlotCaret <- renderPlot({
       plot(results, type = c("g", "o"))
     })
@@ -291,8 +276,7 @@ server <- function(input, output) {
 
   output$uploadFieldCaret <- renderUI({
     if (caretRB() != "mydata") {
-      selectInput("CaretDataSelect", "Choose a dataset:", choices = c("iris",
-                                                                      "cars", "quakes", "rock", "titanic"))
+      selectInput("CaretDataSelect", "Choose a dataset:", choices = c("iris","cars", "quakes", "rock", "titanic"))
     } else {
       fileInput("fileCaret", "Choose Dataset", accept = c("text/csv",
                                                           "text/comma-separated-values,text/plain", ".csv", ".libsvm",
@@ -335,49 +319,40 @@ server <- function(input, output) {
     TestingFile = testingFilePath
 
 
-    # ------------------------------------------------------- Training Data
+
     TrainData <- read.csv(file = TrainingFile, header = FALSE, sep = ",")
-    # TrainData = as.matrix(TrainData) #(Penting, rubah dlu ke matrix)
+
     NumberColumn = ncol(TrainData)
-    # ------------------------------------------------------- Select only
-    # Data from Training dataset
+
     TrainingData_NoClassName = TrainData[, 1:NumberColumn - 1]
     typeof(TrainingData_NoClassName)
-    # ------------------------------------------------------- Select only
-    # class/category from Training Data
-    TrainingData_OnlyClassName = TrainData[, NumberColumn]
-    # -------------------------------------------------------
 
-    # Testing Data
+    TrainingData_OnlyClassName = TrainData[, NumberColumn]
+
     TestingData <- read.csv(file = TestingFile, header = FALSE, sep = ",")
-    # TestingData = as.matrix(TestingData)
+
     NumberColumn = ncol(TestingData)
-    # ------------------------------------------------------- Select only
-    # Data from testing dataset
+
     TestingData_NoClassName = TestingData[, 1:NumberColumn - 1]
-    # ------------------------------------------------------- Select only
-    # class/category from Testing Data
+
     TestingData_OnlyClassName = TestingData[, NumberColumn]
 
     nrFolds <- 5
-    # ------------------------------------------------------- generate
-    # array containing fold-number for each sample (row)
+
     folds <- rep_len(1:nrFolds, nrow(TrainData))
     outputBN <- NULL
     output$resultBN2 <- renderPrint({
 
-      # actual cross validation
+
       for (k in 1:nrFolds) {
-        # actual split of the data
+
         fold = which(folds == k)
         data.train = TrainData[-fold, ]
         ncolumn = ncol(data.train)
         data.test = TrainData[fold, ]
 
-        # train and test your model with data.train and data.test
         model = naiveBayes(data.train[, 1:ncolumn - 1], as.factor(data.train[,
                                                                              ncolumn]))
-        # help(naiveBayes)
         k.result = predict(model, newdata = data.test[, 1:ncolumn -
                                                         1])
         outputBN <- rbind(outputBN, paste(funcPerformanceEvaluation(k.result,
@@ -427,8 +402,7 @@ server <- function(input, output) {
     if (is.null(infile)) {
       return(NULL)
     }
-    # fread(infile$datapath, header = F, sep = ',', verbose=F, colClasses =
-    # 'character')
+
     infile$datapath
   })
 
@@ -439,8 +413,7 @@ server <- function(input, output) {
     if (is.null(infile)) {
       return(NULL)
     }
-    # fread(infile$datapath, header = F, sep = ',', verbose=F, colClasses =
-    # 'character')
+
     infile$datapath
   })
 
@@ -450,41 +423,34 @@ server <- function(input, output) {
     TrainingFile = trainingFilePath
     TestingFile = testingFilePath
 
-    # ------------------------------------------------------- Training Data
+
     TrainData <- fread(TrainingFile, header = F, sep = ",", verbose = F,
                        colClasses = "character")
     TrainData = as.matrix(TrainData)
     NumberColumn = ncol(TrainData)
-    # ------------------------------------------------------- Select only
-    # Data from Training dataset
+
     TrainingData_NoClassName = TrainData[, 1:NumberColumn - 1]
     typeof(TrainingData_NoClassName)
-    # ------------------------------------------------------- Select only
-    # class/category from Training Data
-    TrainingData_OnlyClassName = TrainData[, NumberColumn]
-    # -------------------------------------------------------
 
-    # Testing Data
+    TrainingData_OnlyClassName = TrainData[, NumberColumn]
+
     TestingData <- fread(TestingFile, header = F, sep = ",", verbose = F,
                          colClasses = "numeric")
     TestingData = as.matrix(TestingData)
     NumberColumn = ncol(TestingData)
-    # ------------------------------------------------------- Select only
-    # Data from testing dataset
+
     TestingData_NoClassName = TestingData[, 1:NumberColumn - 1]
-    # ------------------------------------------------------- Select only
-    # class/category from Testing Data
+
     TestingData_OnlyClassName = TestingData[, NumberColumn]
 
     nrFolds <- 5
-    # ------------------------------------------------------- generate
-    # array containing fold-number for each sample (row)
+
     folds <- rep_len(1:nrFolds, nrow(TrainData))
     outputknn <- NULL
     output$resultknn2 <- renderPrint({
-      # actual cross validation
+
       for (k in 1:nrFolds) {
-        # actual split of the data
+
         fold = which(folds == k)
         data.train = TrainData[-fold, ]
         ncolumn = ncol(data.train)
@@ -499,7 +465,7 @@ server <- function(input, output) {
       outputknn
     })
 
-   model.result = knn(TrainingData_NoClassName, TestingData_NoClassName,
+    model.result = knn(TrainingData_NoClassName, TestingData_NoClassName,
                        TrainingData_OnlyClassName, k = 5)
     output$resultknn <- renderPrint({
       print(paste(funcPerformanceEvaluation(model.result, TestingData_OnlyClassName),
@@ -536,8 +502,7 @@ server <- function(input, output) {
     if (is.null(infile)) {
       return(NULL)
     }
-    # fread(infile$datapath, header = F, sep = ',', verbose=F, colClasses =
-    # 'character')
+
     infile$datapath
   })
 
@@ -547,8 +512,7 @@ server <- function(input, output) {
     if (is.null(infile)) {
       return(NULL)
     }
-    # fread(infile$datapath, header = F, sep = ',', verbose=F, colClasses =
-    # 'character')
+
     infile$datapath
   })
 
